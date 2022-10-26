@@ -1,0 +1,31 @@
+﻿@page "/"
+@using Blazor.Extensions;
+@using Blazor.Extensions.Canvas
+@using Blazor.Extensions.Canvas.Canvas2D;
+
+
+
+<PageTitle>Index</PageTitle>
+
+<Chart> </Chart>
+
+<BECanvas Width="3000" Height="400" @ref="_canvasReference"></BECanvas>
+
+@code {
+    private Canvas2DContext _context;
+
+    protected BECanvasComponent _canvasReference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        this._context = await this._canvasReference.CreateCanvas2DAsync();
+        await this._context.SetFillStyleAsync("red");
+
+        //await this._context.f
+
+        await this._context.FillRectAsync(10, 100, 1000, 100);
+
+        await this._context.SetFontAsync("38px Calibri");
+        await this._context.StrokeTextAsync("Hello Blazor!!!", 5, 100);
+ }
+}

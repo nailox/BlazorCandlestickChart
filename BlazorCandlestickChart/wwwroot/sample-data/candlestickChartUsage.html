@@ -1,0 +1,31 @@
+<html>
+<head>
+<script src="pingpoliCandlestickChart.js"></script>
+</head>
+<body>
+<canvas width="1280" height="720" id="testcanvas"></canvas>
+<script>
+function plot()
+{
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open( "GET" , "https://api.binance.com/api/v3/klines?symbol=BTCEUR&interval=1d&limit=200" );
+    xmlhttp.onreadystatechange = function()
+    {
+       	if ( xmlhttp.readyState == 4 && xmlhttp.status == 200 ) 
+        {
+            var json = JSON.parse( xmlhttp.responseText );
+            candlestickChart = new pingpoliCandlestickChart( "testcanvas" );
+            for ( var i = 0 ; i < json.length ; ++i )
+            {
+                candlestickChart.addCandlestick( new pingpoliCandlestick( json[i][0] , json[i][1] , json[i][4] , json[i][2] , json[i][3] ) );
+            }
+            candlestickChart.draw();
+        }
+    }
+    xmlhttp.setRequestHeader( 'Content-Type' , 'application/x-www-form-urlencoded' );
+    xmlhttp.send();
+}
+plot();
+</script>
+</body>
+</html>

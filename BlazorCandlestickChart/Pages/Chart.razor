@@ -1,0 +1,82 @@
+﻿@page "/chart"
+<h3>Chart</h3>
+@using Blazor.Extensions;
+@using Blazor.Extensions.Canvas
+@using Blazor.Extensions.Canvas.Canvas2D;
+@using Services;
+@inject KlinesService KlinesService;
+
+<PageTitle>Index</PageTitle>
+
+<BECanvas Width="3000" Height="400" @ref="_canvasReference"></BECanvas>
+
+@code {
+
+    private Canvas2DContext _context;
+
+    protected BECanvasComponent _canvasReference;
+
+    // private CandlestickChart _chart;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        //call api
+        //make the candlestick 
+        //add in the chart 
+        // draw it
+        try
+        {
+            this._context = await this._canvasReference.CreateCanvas2DAsync();
+
+            CandlestickChart chart = new CandlestickChart(_context, _canvasReference);
+
+            var candles = await KlinesService.GetKlines();
+            Console.WriteLine(candles[0][0]);
+            Console.WriteLine(candles[0][1]);
+            Console.WriteLine(candles[0][4]);
+            Console.WriteLine(candles[0][2]);
+            Console.WriteLine(candles[0][3]);
+
+
+            for (int i = 0; i < candles.Length; i++)
+            {
+             //   var candle = new Candlestick(candles[i][0], (double)candles[i][1], (double)candles[i][4], (double)candles[i][2], (double)candles[i][3]);
+                chart.candlesticks.Add(candle);
+            }
+
+          await  chart.Draw();
+
+            //await this._context.SetFillStyleAsync("#252525");
+
+            //await this._context.SetFontAsync("12px sans-serif");
+
+            //await this._context.FillRectAsync(10, 100, 1000, 100);
+
+            //await this._context.SetFillStyleAsync("red");
+
+            //await this._context.FillRectAsync(10, 50, 1000, 100);
+
+        }
+        catch (Exception e)
+        {
+            throw;
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+}
