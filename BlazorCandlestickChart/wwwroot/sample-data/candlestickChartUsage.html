@@ -8,12 +8,17 @@
 function plot()
 {
     var xmlhttp = new XMLHttpRequest();
-    xmlhttp.open( "GET" , "https://api.binance.com/api/v3/klines?symbol=BTCEUR&interval=1d&limit=200" );
+    xmlhttp.open( "GET" , "https://api.binance.com/api/v3/klines?symbol=BTCEUR&interval=1d&limit=10" );
     xmlhttp.onreadystatechange = function()
     {
        	if ( xmlhttp.readyState == 4 && xmlhttp.status == 200 ) 
         {
-            var json = JSON.parse( xmlhttp.responseText );
+                  var json = JSON.parse(xmlhttp.responseText);
+                  console.log("timestamp " + json[0][0])
+                  console.log("open " + json[0][1])
+                  console.log("close " + json[0][4])
+                  console.log("high " + json[0][2])
+                  console.log("low " + json[0][3])
             candlestickChart = new pingpoliCandlestickChart( "testcanvas" );
             for ( var i = 0 ; i < json.length ; ++i )
             {

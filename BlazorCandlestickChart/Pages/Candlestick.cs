@@ -2,7 +2,7 @@
 {
     public class Candlestick
     {
-        public Candlestick(long timestamp, double high, double open, double close, double low)
+        public Candlestick(long timestamp, double open, double close, double high, double low)
         {
             Timestamp = timestamp;
             High = high;

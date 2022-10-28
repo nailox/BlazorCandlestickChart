@@ -15,8 +15,7 @@ namespace BlazorCandlestickChart.Services
 
         public async Task<object[][]> GetKlines()
         {
-            var result = await httpClient.GetFromJsonAsync<object[][]>(binanceApiUrl) ?? new object[0][];
-            Console.WriteLine(result[2][2]);
+            var result = await httpClient.GetFromJsonAsync<object[][]>(binanceApiUrl) ?? Array.Empty<object[]>();
             return result;
         }
     }

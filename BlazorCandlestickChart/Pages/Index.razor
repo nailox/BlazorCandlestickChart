@@ -3,13 +3,14 @@
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D;
 
-
-
 <PageTitle>Index</PageTitle>
 
-<Chart> </Chart>
+<div style="background-color : black">
+    <Chart> </Chart>
+    </div>
 
-<BECanvas Width="3000" Height="400" @ref="_canvasReference"></BECanvas>
+
+@*<BECanvas Width="3000" Height="400" @ref="_canvasReference"></BECanvas>
 
 @code {
     private Canvas2DContext _context;
@@ -28,4 +29,4 @@
         await this._context.SetFontAsync("38px Calibri");
         await this._context.StrokeTextAsync("Hello Blazor!!!", 5, 100);
  }
-}
+}*@

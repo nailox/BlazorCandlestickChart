@@ -16,6 +16,8 @@ namespace BlazorCandlestickChart.Pages
             _context = context;
             width = (int)canvasRef.Width;
             height = (int)canvasRef.Height;
+            _context.SetFontAsync("12px sans-serif");
+            _context.SetFillStyleAsync("blue");//#252525
         }
 
         private static double width { get; set; }
@@ -36,15 +38,15 @@ namespace BlazorCandlestickChart.Pages
         private static double marginTop = 10;
         private static double marginBottom = 30;
 
-        private static double yStart = 0;
-        private static double yEnd = 0;
+        private  double yStart = 0;
+        private  double yEnd = 0;
         private static double yRange = 0;
-        private static double yPixelRange = height - marginTop - marginBottom;
+        private static double yPixelRange = 0;
 
         private static double xStart = 0;
         private static double xEnd = 0;
         private static double xRange = 0;
-        private static double xPixelRange = width - marginLeft - marginRight;
+        private static double xPixelRange = 0;
 
         private static double xGridCells = 16;
         private static double yGridCells = 16;
@@ -55,8 +57,7 @@ namespace BlazorCandlestickChart.Pages
         private static double yMouseHover = 0;
         private static int hoveredCandlestickID = 0;
 
-        public List<Candlestick> candlesticks;
-
+        public List<Candlestick> candlesticks = new List<Candlestick>();
 
         private async Task MouseMove(MouseEventArgs e)
         {
@@ -91,135 +92,153 @@ namespace BlazorCandlestickChart.Pages
 
         public async Task Draw()
         {
-            // clear background
-            await _context.ClearRectAsync(0, 0, width, height);
-            CalculateYRange();
-            CalculateXRange();
-
-            await DrawGrid();
-            candleWidth = xPixelRange / candlesticks.Count;
-            candleWidth--;
-
-            if (candleWidth % 2 == 0) candleWidth--;
-
-            for (var i = 0; i < candlesticks.Count; ++i)
+            try
             {
-                var color = (candlesticks[i].Close > candlesticks[i].Open) ? greenColor : redColor;
+                // clear background
+                await _context.ClearRectAsync(0, 0, width, height);
+                CalculateYRange();
+                CalculateXRange();
 
-                if (i == hoveredCandlestickID)
+                await DrawGrid();
+                candleWidth = xPixelRange / candlesticks.Count;
+                candleWidth--;
+
+                if (candleWidth % 2 == 0) candleWidth--;
+
+                for (var i = 0; i < candlesticks.Count; ++i)
                 {
-                    if (color == greenColor) color = greenHoverColor;
-                    else if (color == redColor) color = redHoverColor;
-                }
+                    var color = (candlesticks[i].Close > candlesticks[i].Open) ? greenColor : redColor;
 
-                // draw the wick
-                await DrawLine(XtoPixelCoords(candlesticks[i].Timestamp),
-                                            YtoPixelCoords(candlesticks[i].Low),
-                                            XtoPixelCoords(candlesticks[i].Timestamp),
-                                            YtoPixelCoords(candlesticks[i].High),
+                    if (i == hoveredCandlestickID)
+                    {
+                        if (color == greenColor) color = greenHoverColor;
+                        else if (color == redColor) color = redHoverColor;
+                    }
+
+                    // draw the wick
+                    await DrawLine(XtoPixelCoords(candlesticks[i].Timestamp),
+                                                YtoPixelCoords(candlesticks[i].Low),
+                                                XtoPixelCoords(candlesticks[i].Timestamp),
+                                                YtoPixelCoords(candlesticks[i].High),
+                                                color);
+
+                    // draw the candle
+                    await FillRect(XtoPixelCoords(candlesticks[i].Timestamp) - Math.Floor(candleWidth / 2),
+                                            YtoPixelCoords(candlesticks[i].Open), candleWidth,
+                                            YtoPixelCoords(candlesticks[i].Close) - YtoPixelCoords(candlesticks[i].Open),
                                             color);
 
-                // draw the candle
-                await FillRect(XtoPixelCoords(candlesticks[i].Timestamp) - Math.Floor(candleWidth / 2),
-                                        YtoPixelCoords(candlesticks[i].Open), candleWidth,
-                                        YtoPixelCoords(candlesticks[i].Close) - YtoPixelCoords(candlesticks[i].Open),
-                                        color);
+                    // draw mouse hover
+                    if (drawMouseOverlay)
+                    {
+                        // price line
+                        await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
 
-                // draw mouse hover
-                if (drawMouseOverlay)
-                {
-                    // price line
-                    await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
+                        await DrawLine(0, mousePosition.Y, width, mousePosition.Y, mouseHoverBackgroundColor);
+                        await _context.SetLineDashAsync(new float[] { });
+                        var str = RoundPriceValue(yMouseHover).ToString();
+                        var textMetrics = await _context.MeasureTextAsync(str);
+                        await FillRect(width - 70, mousePosition.Y - 10, 70, 20, mouseHoverBackgroundColor);
+                        await _context.SetFillStyleAsync(mouseHoverTextColor);
+                        await _context.FillTextAsync(str, width - textMetrics.Width - 5, mousePosition.Y + 5);
 
-                    await DrawLine(0, mousePosition.Y, width, mousePosition.Y, mouseHoverBackgroundColor);
-                    await _context.SetLineDashAsync(new float[] { });
-                    var str = RoundPriceValue(yMouseHover).ToString();
-                    var textMetrics = await _context.MeasureTextAsync(str);
-                    await FillRect(width - 70, mousePosition.Y - 10, 70, 20, mouseHoverBackgroundColor);
-                    await _context.SetFillStyleAsync(mouseHoverTextColor);
-                    await _context.FillTextAsync(str, width - textMetrics.Width - 5, mousePosition.Y + 5);
+                        // time line
+                        await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
+                        await DrawLine(mousePosition.X, 0, mousePosition.X, height, mouseHoverBackgroundColor);
+                        await _context.SetLineDashAsync(new float[] { });
+                        str = new DateTime((int)xMouseHover).ToString();
+                        textMetrics = await _context.MeasureTextAsync(str);
+                        await FillRect(mousePosition.X - textMetrics.Width / 2 - 5, height - 20, textMetrics.Width + 10, 20, mouseHoverBackgroundColor);
+                        await _context.SetFillStyleAsync(mouseHoverTextColor);
+                        await _context.FillTextAsync(str, mousePosition.X - textMetrics.Width / 2, height - 5);
 
-                    // time line
-                    await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
-                    await DrawLine(mousePosition.X, 0, mousePosition.X, height, mouseHoverBackgroundColor);
-                    await _context.SetLineDashAsync(new float[] { });
-                    str = new DateTime((int)xMouseHover).ToString();
-                    textMetrics = await _context.MeasureTextAsync(str);
-                    await FillRect(mousePosition.X - textMetrics.Width / 2 - 5, height - 20, textMetrics.Width + 10, 20, mouseHoverBackgroundColor);
-                    await _context.SetFillStyleAsync(mouseHoverTextColor);
-                    await _context.FillTextAsync(str, mousePosition.X - textMetrics.Width / 2, height - 5);
+                        // data
+                        var yPos = mousePosition.Y - 95;
+                        if (yPos < 0) yPos = mousePosition.Y + 15;
+                        await FillRect(mousePosition.X + 15, yPos, 100, 80, mouseHoverBackgroundColor);
+                        var candleColor = (candlesticks.ElementAt(hoveredCandlestickID).Close > candlesticks.ElementAt(hoveredCandlestickID).Open ? greenColor : redColor);
+                        await FillRect(mousePosition.X + 15, yPos, 10, 80, color);
+                        await _context.SetLineWidthAsync(2);
+                        await DrawRect(mousePosition.X + 15, yPos, 100, 80, candleColor);
+                        await _context.SetLineWidthAsync(1);
 
-                    // data
-                    var yPos = mousePosition.Y - 95;
-                    if (yPos < 0) yPos = mousePosition.Y + 15;
-                    await FillRect(mousePosition.X + 15, yPos, 100, 80, mouseHoverBackgroundColor);
-                    var candleColor = (candlesticks.ElementAt(hoveredCandlestickID).Close > candlesticks.ElementAt(hoveredCandlestickID).Open ? greenColor : redColor);
-                    await FillRect(mousePosition.X + 15, yPos, 10, 80, color);
-                    await _context.SetLineWidthAsync(2);
-                    await DrawRect(mousePosition.X + 15, yPos, 100, 80, candleColor);
-                    await _context.SetLineWidthAsync(1);
-
-                    await _context.SetFillStyleAsync(mouseHoverTextColor);
-                    await _context.FillTextAsync("O: " + candlesticks.ElementAt(hoveredCandlestickID).Open, mousePosition.X + 30, yPos + 15);
-                    await _context.FillTextAsync("C: " + candlesticks.ElementAt(hoveredCandlestickID).Close, mousePosition.X + 30, yPos + 35);
-                    await _context.FillTextAsync("H: " + candlesticks.ElementAt(hoveredCandlestickID).High, mousePosition.X + 30, yPos + 55);
-                    await _context.FillTextAsync("L: " + candlesticks.ElementAt(hoveredCandlestickID).Low, mousePosition.X + 30, yPos + 75);
+                        await _context.SetFillStyleAsync(mouseHoverTextColor);
+                        await _context.FillTextAsync("O: " + candlesticks.ElementAt(hoveredCandlestickID).Open, mousePosition.X + 30, yPos + 15);
+                        await _context.FillTextAsync("C: " + candlesticks.ElementAt(hoveredCandlestickID).Close, mousePosition.X + 30, yPos + 35);
+                        await _context.FillTextAsync("H: " + candlesticks.ElementAt(hoveredCandlestickID).High, mousePosition.X + 30, yPos + 55);
+                        await _context.FillTextAsync("L: " + candlesticks.ElementAt(hoveredCandlestickID).Low, mousePosition.X + 30, yPos + 75);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+
+                throw;
             }
         }
 
         private async Task DrawGrid()
         {
-            // roughly divide the yRange into cells
-            var yGridSize = yRange / yGridCells;
-
-            // try to find a nice number to round to
-            var niceNumber = Math.Pow(10, Math.Ceiling(Math.Log10(yGridSize)));
-            if (yGridSize < 0.25 * niceNumber) niceNumber = 0.25 * niceNumber;
-            else if (yGridSize < 0.5 * niceNumber) niceNumber = 0.5 * niceNumber;
-
-            // find next largest nice number above yStart
-            var yStartRoundNumber = Math.Ceiling(yStart / niceNumber) * niceNumber;
-
-            // find next lowest nice number below yEnd
-            var yEndRoundNumber = Math.Floor(yEnd / niceNumber) * niceNumber;
-
-            for (var y = yStartRoundNumber; y <= yEndRoundNumber; y += niceNumber)
+            try
             {
-                await DrawLine(0, YtoPixelCoords(y), width, YtoPixelCoords(y), gridColor);
-                var textMetrics = _context.MeasureTextAsync(RoundPriceValue(y).ToString());// ???
-                await _context.SetFillStyleAsync(gridTextColor);
-                await _context.FillTextAsync(RoundPriceValue(y).ToString(), width - textMetrics.Result.Width - 5, YtoPixelCoords(y) - 5);
+                // roughly divide the yRange into cells
+                var yGridSize = yRange / yGridCells;
+
+                // try to find a nice number to round to
+                var niceNumber = Math.Pow(10, Math.Ceiling(Math.Log10(yGridSize)));
+                if (yGridSize < 0.25 * niceNumber) niceNumber = 0.25 * niceNumber;
+                else if (yGridSize < 0.5 * niceNumber) niceNumber = 0.5 * niceNumber;
+
+                // find next largest nice number above yStart
+                var yStartRoundNumber = Math.Ceiling(yStart / niceNumber) * niceNumber;
+
+                // find next lowest nice number below yEnd
+                var yEndRoundNumber = Math.Floor(yEnd / niceNumber) * niceNumber;
+
+                for (var y = yStartRoundNumber; y <= yEndRoundNumber; y += niceNumber)
+                {
+                    await DrawLine(0, YtoPixelCoords(y), width, YtoPixelCoords(y), gridColor);
+                    var textMetrics = _context.MeasureTextAsync(RoundPriceValue(y).ToString());// ???
+                    await _context.SetFillStyleAsync(gridTextColor);
+                    await _context.FillTextAsync(RoundPriceValue(y).ToString(), width - textMetrics.Result.Width - 5, YtoPixelCoords(y) - 5);
+                }
+
+                // roughly divide the xRange into cells
+                var xGridSize = xRange / xGridCells;
+
+                // try to find a nice number to round to
+                niceNumber = Math.Pow(10, Math.Ceiling(Math.Log10(xGridSize)));
+                if (xGridSize < 0.25 * niceNumber) niceNumber = 0.25 * niceNumber;
+                else if (xGridSize < 0.5 * niceNumber) niceNumber = 0.5 * niceNumber;
+
+                // find next largest nice number above yStart
+                var xStartRoundNumber = Math.Ceiling(xStart / niceNumber) * niceNumber;
+                // find next lowest nice number below yEnd
+                var xEndRoundNumber = Math.Floor(xEnd / niceNumber) * niceNumber;
+
+                // if the total x range is more than 5 days, format the timestamp as date instead of hours
+                var formatAsDate = false;
+                if (xRange > 60 * 60 * 24 * 1000 * 5) formatAsDate = true;
+                for (var x = xStartRoundNumber; x <= xEndRoundNumber; x += niceNumber)
+                {
+                    await DrawLine(XtoPixelCoords(x), 0, XtoPixelCoords(x), height, gridColor);
+                    //  var date = new DateTime((long)x); // ???
+                    DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    DateTime date = start.AddMilliseconds(x).ToLocalTime();
+                    var dateStr = string.Empty;
+
+                    dateStr = formatAsDate ? date.ToString("dd.MM") : date.ToString("HH:mm");
+
+                    await _context.SetFillStyleAsync(gridTextColor);
+                    await _context.FillTextAsync(dateStr, XtoPixelCoords(x) + 5, height - 5);
+                }
             }
-
-            // roughly divide the xRange into cells
-            var xGridSize = xRange / xGridCells;
-
-            // try to find a nice number to round to
-            niceNumber = Math.Pow(10, Math.Ceiling(Math.Log10(xGridSize)));
-            if (xGridSize < 0.25 * niceNumber) niceNumber = 0.25 * niceNumber;
-            else if (xGridSize < 0.5 * niceNumber) niceNumber = 0.5 * niceNumber;
-
-            // find next largest nice number above yStart
-            var xStartRoundNumber = Math.Ceiling(xStart / niceNumber) * niceNumber;
-            // find next lowest nice number below yEnd
-            var xEndRoundNumber = Math.Floor(xEnd / niceNumber) * niceNumber;
-
-            // if the total x range is more than 5 days, format the timestamp as date instead of hours
-            var formatAsDate = false;
-            if (xRange > 60 * 60 * 24 * 1000 * 5) formatAsDate = true;
-
-            for (var x = xStartRoundNumber; x <= xEndRoundNumber; x += niceNumber)
+            catch (Exception e)
             {
-                await DrawLine(XtoPixelCoords(x), 0, XtoPixelCoords(x), height, gridColor);
-                var date = new DateTime((int)x); // ???
-                var dateStr = string.Empty;
 
-                dateStr = formatAsDate ? dateStr = date.ToString("dd:MM") : dateStr = date.ToString("HH:mm");
-
-                await _context.SetFillStyleAsync(gridTextColor);
-                await _context.FillTextAsync(dateStr, XtoPixelCoords(x) + 5, height - 5);
+                Console.WriteLine(e.StackTrace);
             }
+       
         }
 
         private void CalculateYRange()
@@ -231,6 +250,8 @@ namespace BlazorCandlestickChart.Pages
                 if (i == 0)
                 {
                     yStart = currentCandlestick.Low;
+                    double low = 0;
+                     low = currentCandlestick.Low;
                     yEnd = currentCandlestick.High;
                 }
                 else
@@ -257,21 +278,28 @@ namespace BlazorCandlestickChart.Pages
 
         private double YtoPixelCoords(double y)
         {
-            return height - marginBottom - (y - yStart) * yPixelRange / yRange;
+            yPixelRange = height - marginTop - marginBottom;
+            var coords = height - marginBottom - (y - yStart) * yPixelRange / yRange;
+            return coords;
+
         }
         private double XtoPixelCoords(double x)
         {
-            return marginLeft + (x - xStart) * xPixelRange / xRange;
+            xPixelRange = width - marginLeft - marginRight;
+            var coords = marginLeft + (x - xStart) * xPixelRange / xRange;
+            return coords;
         }
 
         private double YtoValueCoords(double y)
         {
-            return yStart + (height - marginBottom - y) * yRange / yPixelRange;
+            var valCoords = yStart + (height - marginBottom - y) * yRange / yPixelRange;
+            return valCoords;
         }
 
         private double XtoValueCoords(double x)
         {
-            return xStart + (x - marginLeft) * xRange / xPixelRange;
+            var valCoords = xStart + (x - marginLeft) * xRange / xPixelRange;
+            return valCoords;
         }
 
         private async Task DrawRect(double x, double y, double width, double height, string color)

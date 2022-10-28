@@ -8,7 +8,8 @@
 
 <PageTitle>Index</PageTitle>
 
-<BECanvas Width="3000" Height="400" @ref="_canvasReference"></BECanvas>
+<BECanvas Width="1280" Height="720" @ref="_canvasReference"></BECanvas>
+@* params *@
 
 @code {
 
@@ -16,38 +17,50 @@
 
     protected BECanvasComponent _canvasReference;
 
-    // private CandlestickChart _chart;
+    private CandlestickChart _chart;
+
+
 
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        //call api
-        //make the candlestick 
-        //add in the chart 
-        // draw it
         try
         {
             this._context = await this._canvasReference.CreateCanvas2DAsync();
 
-            CandlestickChart chart = new CandlestickChart(_context, _canvasReference);
+            _chart = new CandlestickChart(_context, _canvasReference);
 
             var candles = await KlinesService.GetKlines();
-            Console.WriteLine(candles[0][0]);
-            Console.WriteLine(candles[0][1]);
-            Console.WriteLine(candles[0][4]);
-            Console.WriteLine(candles[0][2]);
-            Console.WriteLine(candles[0][3]);
+            Console.WriteLine("candles length: " + candles.Length);
+            Console.WriteLine("inner array length " + candles[0].Length);
+            Console.WriteLine("timestamp " + candles[0][0]);
+            Console.WriteLine("open " + candles[0][1]);
+            Console.WriteLine("close "  + candles[0][4]);
+            Console.WriteLine("high " + candles[0][2]);
+            Console.WriteLine("low "+ candles[0][3]);
 
-
-            for (int i = 0; i < candles.Length; i++)
+            if (candles.Length != 0)
             {
-             //   var candle = new Candlestick(candles[i][0], (double)candles[i][1], (double)candles[i][4], (double)candles[i][2], (double)candles[i][3]);
-                chart.candlesticks.Add(candle);
+                for (int i = 0; i < candles.Length; i++)
+                {
+                    var timeStamp = long.Parse(candles[i][0].ToString());
+                    var high = double.Parse(candles[i][1].ToString());
+                    var open = double.Parse(candles[i][4].ToString());
+                    var close = double.Parse(candles[i][2].ToString());
+                    var low = double.Parse(candles[i][3].ToString());
+
+                    var candle = new Candlestick(timeStamp, high, open, close, low);
+                    _chart.candlesticks.Add(candle);
+                }
             }
+            else
+            {
+                //alert problem with api
+            }
+         
+          await  _chart.Draw();
 
-          await  chart.Draw();
-
-            //await this._context.SetFillStyleAsync("#252525");
+        //   await this._context.SetFillStyleAsync("#252525");
 
             //await this._context.SetFontAsync("12px sans-serif");
 
@@ -60,23 +73,10 @@
         }
         catch (Exception e)
         {
-            throw;
+           Console.WriteLine(e.StackTrace);
         }
 
     }
-
-
-
-
-
-
-
-
-
-
-  
-
-
 
 
 }
