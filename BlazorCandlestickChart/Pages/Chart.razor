@@ -8,19 +8,31 @@
 
 <PageTitle>Index</PageTitle>
 
-<BECanvas Width="1280" Height="720" @ref="_canvasReference"></BECanvas>
-@* params *@
+<div style="background-color : black" @onmousemove="MouseMove" @onmouseout="MouseOut">
+    <BECanvas Width="1200" Height="800" @ref="_canvasReference"></BECanvas>
+</div>
 
 @code {
-
     private Canvas2DContext _context;
 
     protected BECanvasComponent _canvasReference;
 
     private CandlestickChart _chart;
 
+    private bool shouldRender = false;
 
+    private async Task MouseMove(MouseEventArgs e)
+    {
+        //  await _chart.MouseMove(e);
+        await _context.ClearRectAsync(0, 0, _chart.Width, _chart.Height);
+        await _chart.Draw();
+        await _chart.DrawLine(e.OffsetX, _chart.Height, e.OffsetX, 0, "white" );
+    }
 
+    private async Task MouseOut(MouseEventArgs e )
+    {
+        await _chart.MouseOut(e);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -31,13 +43,15 @@
             _chart = new CandlestickChart(_context, _canvasReference);
 
             var candles = await KlinesService.GetKlines();
-            Console.WriteLine("candles length: " + candles.Length);
-            Console.WriteLine("inner array length " + candles[0].Length);
-            Console.WriteLine("timestamp " + candles[0][0]);
-            Console.WriteLine("open " + candles[0][1]);
-            Console.WriteLine("close "  + candles[0][4]);
-            Console.WriteLine("high " + candles[0][2]);
-            Console.WriteLine("low "+ candles[0][3]);
+            //make last candle draw in real time 
+
+            //Console.WriteLine("candles length: " + candles.Length);
+            //Console.WriteLine("inner array length " + candles[0].Length);
+            //Console.WriteLine("timestamp " + candles[0][0]);
+            //Console.WriteLine("open " + candles[0][1]);
+            //Console.WriteLine("close "  + candles[0][4]);
+            //Console.WriteLine("high " + candles[0][2]);
+            //Console.WriteLine("low "+ candles[0][3]);
 
             if (candles.Length != 0)
             {
@@ -59,24 +73,15 @@
             }
          
           await  _chart.Draw();
-
-        //   await this._context.SetFillStyleAsync("#252525");
-
-            //await this._context.SetFontAsync("12px sans-serif");
-
-            //await this._context.FillRectAsync(10, 100, 1000, 100);
-
-            //await this._context.SetFillStyleAsync("red");
-
-            //await this._context.FillRectAsync(10, 50, 1000, 100);
-
         }
         catch (Exception e)
         {
-           Console.WriteLine(e.StackTrace);
+           Console.WriteLine("Stack Trace: " + e.StackTrace);
         }
-
     }
 
-
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
 }

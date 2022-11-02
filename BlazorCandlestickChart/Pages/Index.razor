@@ -2,31 +2,29 @@
 @using Blazor.Extensions;
 @using Blazor.Extensions.Canvas
 @using Blazor.Extensions.Canvas.Canvas2D;
+@using Pages;
+@using Services;
 
 <PageTitle>Index</PageTitle>
 
-<div style="background-color : black">
     <Chart> </Chart>
-    </div>
-
-
-@*<BECanvas Width="3000" Height="400" @ref="_canvasReference"></BECanvas>
 
 @code {
-    private Canvas2DContext _context;
+    //private Canvas2DContext _context;
 
-    protected BECanvasComponent _canvasReference;
+    //protected BECanvasComponent _canvasReference;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        this._context = await this._canvasReference.CreateCanvas2DAsync();
-        await this._context.SetFillStyleAsync("red");
+    //private CandlestickChart _chart;
 
-        //await this._context.f
+    //private async Task MouseMove(MouseEventArgs e)
+    //{
+    //    await _chart.MouseMove(e);
+    //}
 
-        await this._context.FillRectAsync(10, 100, 1000, 100);
+    //protected override async Task OnAfterRenderAsync(bool firstRender)
+    //{
+    //    this._context = await this._canvasReference.CreateCanvas2DAsync();
 
-        await this._context.SetFontAsync("38px Calibri");
-        await this._context.StrokeTextAsync("Hello Blazor!!!", 5, 100);
- }
-}*@
+    //    _chart = new CandlestickChart(_context, _canvasReference);
+    //}
+}

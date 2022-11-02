@@ -1,4 +1,7 @@
 ﻿using System.Net.Http.Json;
+using Blazor.Extensions;
+using Blazor.Extensions.Canvas.Canvas2D;
+using BlazorCandlestickChart.Pages;
 
 namespace BlazorCandlestickChart.Services
 {
@@ -6,6 +9,8 @@ namespace BlazorCandlestickChart.Services
     {
         private readonly HttpClient httpClient;
         private readonly string binanceApiUrl;
+        private Canvas2DContext _context;
+        BECanvasComponent canvasRef;
 
         public KlinesService(HttpClient httpClient, IConfiguration config)
         {
