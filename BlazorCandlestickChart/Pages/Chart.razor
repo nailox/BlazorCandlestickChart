@@ -1,49 +1,59 @@
 ﻿@page "/chart"
 <h3>Chart</h3>
 @using Blazor.Extensions;
-@using Blazor.Extensions.Canvas
+@using Blazor.Extensions.Canvas;
 @using Blazor.Extensions.Canvas.Canvas2D;
 @using Services;
 @inject KlinesService KlinesService;
 
 <PageTitle>Index</PageTitle>
 
-<div style="background-color : black" @onmousemove="MouseMove" @onmouseout="MouseOut">
-    <BECanvas Width="1200" Height="800" @ref="_canvasReference"></BECanvas>
+<div style="position: relative">
+
+    <div style="background-color : black; position: absolute;">
+    <BECanvas Width="1200" Height="800" @ref="_chartReferene"></BECanvas>
+</div>
+
+    <div style="position: absolute;  top: 0; left: 0;" @onmousemove="MouseMove" @onmouseout="MouseOut">
+    <BECanvas Width="1200" Height="800" @ref="_overlayReference"></BECanvas>
+</div>
+
 </div>
 
 @code {
-    private Canvas2DContext _context;
+    private Canvas2DContext _chartContext;
+    private Canvas2DContext _overlayContext;
 
-    protected BECanvasComponent _canvasReference;
+    protected BECanvasComponent _chartReferene;
+    protected BECanvasComponent _overlayReference;
 
-    private CandlestickChart _chart;
+    private Utility _chart;
+    private Utility _overlay;
 
     private bool shouldRender = false;
 
     private async Task MouseMove(MouseEventArgs e)
     {
-        //  await _chart.MouseMove(e);
-        await _context.ClearRectAsync(0, 0, _chart.Width, _chart.Height);
-        await _chart.Draw();
-        await _chart.DrawLine(e.OffsetX, _chart.Height, e.OffsetX, 0, "white" );
+           await _overlay.MouseMove(e);
     }
 
     private async Task MouseOut(MouseEventArgs e )
     {
-        await _chart.MouseOut(e);
+        await _overlayContext.ClearRectAsync(0, 0, _overlay.Width, _overlay.Height);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         try
-        {
-            this._context = await this._canvasReference.CreateCanvas2DAsync();
+        {   
+            this._chartContext = await this._chartReferene.CreateCanvas2DAsync();
+            this._overlayContext = await this._overlayReference.CreateCanvas2DAsync();
 
-            _chart = new CandlestickChart(_context, _canvasReference);
+            _chart = new Utility(_chartContext, _chartReferene);
+            _overlay = new Utility(_overlayContext, _overlayReference);
 
-            var candles = await KlinesService.GetKlines();
-            //make last candle draw in real time 
+            var candles = await KlinesService.GetKlines();// get data from websocket ? 
+            //draw on timer
 
             //Console.WriteLine("candles length: " + candles.Length);
             //Console.WriteLine("inner array length " + candles[0].Length);
@@ -71,12 +81,12 @@
             {
                 //alert problem with api
             }
-         
-          await  _chart.Draw();
+
+            await  _chart.Draw();
         }
         catch (Exception e)
         {
-           Console.WriteLine("Stack Trace: " + e.StackTrace);
+           Console.WriteLine(e.Message + e.StackTrace);
         }
     }
 

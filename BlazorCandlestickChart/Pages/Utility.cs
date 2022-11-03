@@ -1,12 +1,13 @@
 ﻿using Blazor.Extensions;
 using Blazor.Extensions.Canvas.Canvas2D;
 using Microsoft.AspNetCore.Components.Web;
+using System;
 
 namespace BlazorCandlestickChart.Pages
 {
-    public class CandlestickChart
+    public class Utility
     {
-        public CandlestickChart(Canvas2DContext context, BECanvasComponent canvasRef)
+        public Utility(Canvas2DContext context, BECanvasComponent canvasRef)
         {
             _context = context;
             Width = (int)canvasRef.Width;
@@ -14,7 +15,6 @@ namespace BlazorCandlestickChart.Pages
             _context.SetFontAsync("12px sans-serif");
         }
 
-        //  private BECanvasComponent CanvasRef { get; set; }
         private Canvas2DContext _context;
 
         #region fields
@@ -63,6 +63,7 @@ namespace BlazorCandlestickChart.Pages
         {
             try
             {
+                await _context.ClearRectAsync(0, 0, Width, Height);
                 mouseX = e.OffsetX;
                 mouseY = e.OffsetY;
 
@@ -71,32 +72,40 @@ namespace BlazorCandlestickChart.Pages
                 if (mouseX < marginLeft) drawMouseOverlay = false;
                 if (mouseX > Width - marginRight + candleWidth) drawMouseOverlay = false;
                 if (mouseY > Height - marginBottom) drawMouseOverlay = false;
-                await Draw();
-                //if (drawMouseOverlay)
-                //{
-                //yMouseHover = YtoValueCoords(mouseY);
-                //xMouseHover = XtoValueCoords(mouseX);
-                //// snap to candlesticks
-                //var candlestickDelta = candlesticks.ElementAt(1).Timestamp - candlesticks.ElementAt(0).Timestamp;
-                //hoveredCandlestickID = (int)(Math.Floor(xMouseHover - candlesticks.ElementAt(0).Timestamp) / candlestickDelta);
-                //xMouseHover = Math.Floor(xMouseHover / candlestickDelta) * candlestickDelta;
-                //mouseX = XtoPixelCoords(xMouseHover);
-                //await Draw();
-                // }
-              //  else await Draw();
+
+             
+                yMouseHover = YtoValueCoords(mouseY);
+                xMouseHover = XtoValueCoords(mouseX);
+                mouseX = XtoPixelCoords(xMouseHover);
+
+                //price line
+                await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
+                await DrawLine(0, mouseY, Width, mouseY, mouseHoverBackgroundColor);
+                await _context.SetLineDashAsync(new float[] { });
+                var str = RoundPriceValue(yMouseHover).ToString();
+                var textMetrics = await _context.MeasureTextAsync(str);
+                await FillRect(Width - 70, mouseY - 10, 70, 20, mouseHoverBackgroundColor);
+                await _context.SetFillStyleAsync(mouseHoverTextColor);
+                await _context.FillTextAsync(str, Width - textMetrics.Width - 5, mouseY + 5);
+
+                // time line
+                await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
+                await DrawLine(mouseX, 0, mouseX, Height, mouseHoverBackgroundColor);
+                await _context.SetLineDashAsync(new float[] { });
+                DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                DateTime date = start.AddMilliseconds((long)xMouseHover).ToLocalTime();
+                str = date.ToString(); 
+                textMetrics = await _context.MeasureTextAsync(str);
+                await FillRect(mouseX - textMetrics.Width / 2 - 5, Height - 20, textMetrics.Width + 10, 20, mouseHoverBackgroundColor);
+                await _context.SetFillStyleAsync(mouseHoverTextColor);
+                await _context.FillTextAsync(str, mouseX - textMetrics.Width / 2, Height - 5);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("mouse move exc: " + ex.Message + ex.StackTrace);
             }
         }
-        public async Task MouseOut(MouseEventArgs e)
-        {
-            drawMouseOverlay = false;
-            await Draw();
-        }
-
-        public async Task Draw()
+            public async Task Draw()
         {
             try
             {
@@ -133,49 +142,6 @@ namespace BlazorCandlestickChart.Pages
                                             YtoPixelCoords(candlesticks[i].Open), candleWidth,
                                             YtoPixelCoords(candlesticks[i].Close) - YtoPixelCoords(candlesticks[i].Open),
                                             color);
-
-                    // draw mouse hover
-                    if (drawMouseOverlay)
-                    {
-                        // price line
-                        //await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
-
-                        //await DrawLine(0, mouseY, Width, mouseY, mouseHoverBackgroundColor);
-                        //await _context.SetLineDashAsync(new float[] { });
-                        //var str = RoundPriceValue(yMouseHover).ToString();
-                        //var textMetrics = await _context.MeasureTextAsync(str);
-                        //await FillRect(Width - 70, mouseY - 10, 70, 20, mouseHoverBackgroundColor);
-                        //await _context.SetFillStyleAsync(mouseHoverTextColor);
-                        //await _context.FillTextAsync(str, Width - textMetrics.Width - 5, mouseY + 5);
-
-                        //// time line
-                        //await _context.SetLineDashAsync(new float[] { 5.0f, 5.0f });
-                        //await DrawLine(mouseX, 0, mouseX, Height, mouseHoverBackgroundColor);
-                        //await _context.SetLineDashAsync(new float[] { });
-                        //DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                        //DateTime date = start.AddMilliseconds((long)xMouseHover).ToLocalTime();
-                        //str = date.ToString();
-                        //textMetrics = await _context.MeasureTextAsync(str);
-                        //await FillRect(mouseX - textMetrics.Width / 2 - 5, Height - 20, textMetrics.Width + 10, 20, mouseHoverBackgroundColor);
-                        //await _context.SetFillStyleAsync(mouseHoverTextColor);
-                        //await _context.FillTextAsync(str, mouseX- textMetrics.Width / 2, Height - 5);
-
-                        // data
-                        //var yPos = mouseY - 95;
-                        //if (yPos < 0) yPos = mouseY + 15;
-                        //await FillRect(mouseX + 15, yPos, 100, 80, mouseHoverBackgroundColor);
-                        //var candleColor = (candlesticks.ElementAt(hoveredCandlestickID).Close > candlesticks.ElementAt(hoveredCandlestickID).Open ? greenColor : redColor);
-                        //await FillRect(mouseX + 15, yPos, 10, 80, color);
-                        //await _context.SetLineWidthAsync(2);
-                        //await DrawRect(mouseX + 15, yPos, 100, 80, candleColor);
-                        //await _context.SetLineWidthAsync(1);
-
-                        //await _context.SetFillStyleAsync(mouseHoverTextColor);
-                        //await _context.FillTextAsync("O: " + candlesticks.ElementAt(hoveredCandlestickID).Open, mouseX + 30, yPos + 15);
-                        //await _context.FillTextAsync("C: " + candlesticks.ElementAt(hoveredCandlestickID).Close, mouseX + 30, yPos + 35);
-                        //await _context.FillTextAsync("H: " + candlesticks.ElementAt(hoveredCandlestickID).High, mouseX + 30, yPos + 55);
-                        //await _context.FillTextAsync("L: " + candlesticks.ElementAt(hoveredCandlestickID).Low, mouseX + 30, yPos + 75);
-                    }
                 }
             }
             catch (Exception e)
